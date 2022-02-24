@@ -1,0 +1,9 @@
+CHIP Mux4In1Out {
+    IN a, b, c, d, sel0, sel1;
+    OUT out;
+
+    PARTS:
+    Mux(a = a, b = b, sel=sel0, out=amuxbsel0);
+    Mux(a = c, b = d, sel=sel0, out=cmuxdsel0);
+    Mux(a = amuxbsel0, b = cmuxdsel0, sel = sel1, out=out);
+} 
