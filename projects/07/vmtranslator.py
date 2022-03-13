@@ -1,10 +1,9 @@
-
 import argparse
 
 def vm_translate(lines,static_var_prefix):
     stack_cmds = {
-                "push": """@SP\nA=M\nM=D\n@SP\nM=M+1\n""",
-                "pop": """@SP\nAM=M-1\nD=M\n"""
+                "push": """\n@SP\nAM=M+1\nA=A-1\nM=D""",
+                "pop": """\n@SP\nAM=M-1\nD=M"""
                 }
     memo_segment_map = {
         "argument": "ARG",
@@ -29,18 +28,18 @@ def vm_translate(lines,static_var_prefix):
             memo_accs_cmd = stack_cmds[words[0]]
             if words[1] in memo_segment_map:
                 #compute the address
-                addr_cmp_cmd += f"""@{memo_segment_map[words[1]]}\nD=M\n@{words[2]}\n"""
+                addr_cmp_cmd += f"""\n@{memo_segment_map[words[1]]}\nD=M\n@{words[2]}"""
                 
                 if words[0] == 'push':
-                    addr_cmp_cmd += f"""A=D+A\nD=M\n"""    
+                    addr_cmp_cmd += f"""\nA=D+A\nD=M"""    
                 elif words[0] == "pop":
-                    addr_cmp_cmd += f"""D=D+A\n@R13\nM=D\n"""
-                    memo_accs_cmd += """@R13\nA=M\nM=D\n"""
+                    addr_cmp_cmd += f"""\nD=D+A\n@R13\nM=D"""
+                    memo_accs_cmd += """\n@R13\nA=M\nM=D"""
                 final_cmd = addr_cmp_cmd  + memo_accs_cmd
             elif words[1] == 'constant':
-                addr_cmp_cmd = f"@{words[2]}\n"
+                addr_cmp_cmd = f"\n@{words[2]}"
                 if words[0] == 'push':
-                    addr_cmp_cmd += "D=A\n"
+                    addr_cmp_cmd += "\nD=A"
                 elif words[0] == 'pop':
                     addr_cmp_cmd = ""
                     memo_accs_cmd = "" 
@@ -52,12 +51,12 @@ def vm_translate(lines,static_var_prefix):
                     address = static_var_prefix+'.'+words[2]
                 elif words[1] == 'pointer':
                     address = 'THIS' if words[2] == '0' else 'THAT'
-                addr_cmp_cmd = f"@{address}\n"
+                addr_cmp_cmd = f"\n@{address}"
                 if words[0] == 'push':
-                    addr_cmp_cmd += "D=M\n"
+                    addr_cmp_cmd += "\nD=M"
                     final_cmd = addr_cmp_cmd + memo_accs_cmd
                 elif words[0] == 'pop':
-                    addr_cmp_cmd += "M=D\n"
+                    addr_cmp_cmd += "\nM=D"
                     final_cmd = memo_accs_cmd + addr_cmp_cmd
         # arithmetic and logical stack commands
         elif len(words) == 1:
@@ -65,16 +64,18 @@ def vm_translate(lines,static_var_prefix):
             unary_operators = {'neg':'-','not':'!'}
             comp_operators = ('eq','gt','lt')
             if words[0] in binary_operators:
-                final_cmd+=f"{stack_cmds['pop']}\n@R13\nM=D\n{stack_cmds['pop']}\n@R13\nA=M\n"
                 if words[0] in comp_operators:
                     cmp_cnt = cmp_cnt+1
                     jmp = 'J'+binary_operators[words[0]]
-                    final_cmd += f"D=D-A\n@{words[0]}_{cmp_cnt}\nD;{jmp}\nD=0\n@{words[0]}_{cmp_cnt}P\nD;JMP\n({words[0]}_{cmp_cnt})\nD=-1\n({words[0]}_{cmp_cnt}P)\n"
+                    final_cmd+=f"{stack_cmds['pop']}\n@SP\nAM=M-1"
+                    final_cmd += f"\nD=M-D\n@{words[0]}_{cmp_cnt}\nD;{jmp}\nD=0\n@{words[0]}_{cmp_cnt}P\nD;JMP\n({words[0]}_{cmp_cnt})\nD=-1\n({words[0]}_{cmp_cnt}P)"
+                    final_cmd += f"{stack_cmds['push']}"
                 else:
-                    final_cmd += 'D=D'+binary_operators[words[0]]+'A\n'
+                    final_cmd+=f"{stack_cmds['pop']}\nA=A-1"
+                    final_cmd += '\nM=M'+binary_operators[words[0]]+'D'
             elif words[0] in unary_operators:
-                final_cmd+=f"{stack_cmds['pop']}\nD={unary_operators[words[0]]}D\n"
-            final_cmd+=f"{stack_cmds['push']}\n"
+                final_cmd+=f"{stack_cmds['pop']}\nD={unary_operators[words[0]]}D"
+                final_cmd+=f"{stack_cmds['push']}"
         translation.append(final_cmd)
     return translation
         
@@ -89,7 +90,7 @@ def write_file(assembly_code, file_path):
     filename = filename+'.asm'
     with open(filename, 'w') as f:
         for line in assembly_code:
-            f.write(f'{line}\n')
+            f.write(f'{line}')
 
 arg_parser = argparse.ArgumentParser(description='Translates the vm code(*.vm file) to assembly code(*.asm file)')
 arg_parser.add_argument('Path',
