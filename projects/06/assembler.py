@@ -190,7 +190,6 @@ class Assembler:
         out_filename = self.filename.split('.')[0]
         print(out_filename)
         out_filename = out_filename+'.hack'
-        instr_len = len(instruction_bits)-1
         with open(out_filename,'w') as f:
             for word in instruction_bits:
                 f.write(f'{word}\n')

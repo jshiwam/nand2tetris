@@ -43,8 +43,19 @@ CHIP CPU {
     //        15   12..........6  5...3  2...0
     // instr = i xx ac1c2c3c4c5c6 d1d2d3 j1j2j3
     
-    Or16(a=false, b=instruction, out=instr, out[15]=i, out[12]=a, out[11]=c1, out[10]=c2, out[9]=c3, out[8]=c4, out[7]=c5, out[6]=c6, out[5]=d1, out[4]=d2, out[3]=d3, out[0..2]=jump);
+    Or16(a=false, b=instruction, out=instr, out[15]=i, out[12]=a, out[11]=c1, out[10]=c2, out[9]=c3, out[8]=c4, out[7]=c5, out[6]=c6, out[5]=d1, out[4]=d2, out[3]=d3, out[2]=j1, out[1]=j2, out[0]=j3);
     
+    Mux16(a=instr, b=din, sel=i, out=Areg);
+    
+    //controls for loadA bit (i=0) or (i=1 and d1==1)
+    Not(in=i, out=loadAddr);
+    
+    Or(a=loadAddr, b=d1, out=loadA);
+
+    //A register 
+    ARegister(in=Areg, load=loadA, out=outA, out[0..14]=addressM);
+    Mux16(a=outA, b=inM, sel=a, out=aluy);
+
     //ALU output
     ALU(x=alux, y=aluy, zx=c1, nx=c2, zy=c3, ny=c4, f=c5, no=c6, out=outM, out=din, zr=zr, ng=ng);
     
@@ -54,18 +65,6 @@ CHIP CPU {
     //D register 
     DRegister(in=din, load=loadD, out=alux);
 
-    And(a=i, b=d1, out=loadAComp);
-    Mux16(a=instr, b=din, sel=loadAComp, out=Areg);
-    
-    //controls for loadA bit (i=0) or (i=1 and d1==1)
-    Not(in=i, out=loadAddr);
-    
-    Or(a=loadAddr, b=loadAComp, out=loadA);
-
-    //A register 
-    ARegister(in=Areg, load=loadA, out=outA, out[0..14]=addressM);
-    Mux16(a=outA, b=inM, sel=a, out=aluy);
-
     //writeM
     And(a=i, b=d3, out=writeM);
 
@@ -73,15 +72,21 @@ CHIP CPU {
     Not(in=zr, out=nzr);
     Not(in=ng, out=nng);
 
-    And(a=nzr, b=nng, out=jb);
-    And(a=zr, b=nng, out=jc);
-    //jd=nng
-    And(a=nzr, b=ng, out=je);
-    //jf=nzr
-    Or(a=jc,b=je,out=jg);
-    Mux8Way16(a[0]=false,b[0]=jb,c[0]=jc,d[0]=nng,e[0]=je,f[0]=nzr,g[0]=jg,h[0]=true,sel=jump,out[0]=loadpc);
+    //greater than
+    And(a=nng, b=nzr, out=greater);
+    And(a=j3, b=greater, out=jge);
+    //less than
+    //And(a=ng, b=nzr, out=less);
+    And(a=j1, b=ng, out=jle);
+    //equal
+    //And(a=zr, b=nng, out=eq);
+    And(a=j2, b=zr, out=jeq);
+
+    Or(a=jge, b=jle, out=jgle);
+    Or(a=jgle, b=jeq, out=loadpc);
     
     And(a=i, b=loadpc, out=loadpcf);
+    
     Not(in=loadpcf, out=notloadpc);
     
     PC(in=outA,load=loadpcf,inc=notloadpc,reset=reset,out[0..14]=pc);

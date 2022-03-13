@@ -1,0 +1,10 @@
+CHIP DFF{
+    IN in;
+    OUT out;
+    //CLOCKED in; //CLOCKED is not recognized as a keyword
+
+    PARTS: // Circuit has circle in its parts connection
+    Not(in=in,out=nin);
+    Nand(a=in, b=qnot, out=q, out=out);
+    Nand(a=nin, b=q, out=qnot);
+}

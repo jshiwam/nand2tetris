@@ -28,46 +28,13 @@ CHIP Memory {
 
     PARTS:
     // Put your code here:
-    DMux(in=load, sel=address[14], a=memo, b=outs);
-    
-    //Memory
-    RAM16K(in=in, load=memo, address=address[0..13], out=memout);
-    
-    //Screen And Keyboard
-    DMux(in=outs, sel=address[13], a=sck, b=invalid);
+    And(a=address[14], b=load, out=loadScreen);
+    Not(in=address[14], out=notScreenBit);
+    And(a=notScreenBit, b=load, out=loadRam);
 
-    //Keyboard when address == 110000000000000
-    And(a=address[14], b=address[13], out=k1);
-    Or(a=address[12], b=address[11], out=k2);
-    Or(a=address[10], b=address[9], out=k3);
-    Or(a=address[8], b=address[7], out=k4);
-    Or(a=address[6], b=address[5], out=k5);
-    Or(a=address[4], b=address[3], out=k6);
-    Or(a=address[2], b=address[1], out=k7);
-    
-    Or(a=address[0], b=k7, out=ke1);
-    Or(a=k6, b=k5, out=ke2);
-    Or(a=k4, b=k3, out=ke3);
-    
-    Or(a=k2, b=ke1, out=key1);
-    Or(a=ke2, b=ke3, out=key2);
+    RAM16K(in=in, load=loadRam, address=address[0..13],out=ramout);
+    Screen(in=in, load=loadScreen, address=address[0..12], out=screenOut);
+    Keyboard(out=kbdOut);
 
-    Or(a=key1, b=key2, out=key);
-    Not(in=key, out=iskey);
-
-    And(a=k1, b=iskey, out=keyin);
-
-    Not(in=keyin, out=nkeyin);
-    Keyboard(out=Kout);
-    
-    Screen(in=in, load=sck, address=address[0..12], out=sckout);
-    
-    Mux16(a=sckout, b=Kout, sel=keyin, out=screenkey);
-
-    And(a=nkeyin, b=address[13], out=outinval);
-
-    //If invalid memory accessed then set the output to false
-    Mux16(a=screenkey, b=false, sel=outinval, out=outsval);
-    
-    Mux16(a=memout, b=outsval, sel=address[14], out=out);
+    Mux4Way16(a=ramout, b=ramout, c=screenOut, d=kbdOut, sel=address[13..14], out=out);
 }

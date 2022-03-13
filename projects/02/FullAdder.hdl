@@ -13,12 +13,12 @@ CHIP FullAdder {
         carry;   // Left bit of a + b + c
 
     PARTS:
-    // Put you code here:3Xor 2 And 
+    // Put you code here:2HA 1Xor = 3Xor 2And = 3Nand 5And 3Or 
     // HalfAdder(a=a, b=b, sum=sum1, carry=carry1);
     // HalfAdder(a=c, b=sum1, sum=sum, carry=carry2);
     // Xor(a=carry1, b=carry2, out=carry);
 
-    // With less gates: 2Xor 3And 2Or(Canonical Form) 
+    // With less gates: 2Xor 3And 2Or(Canonical Form) = 2Nand 5And 4Or
     // sum1 = Xor(a,b)
     // sum = Xor(c,sum1)
 
